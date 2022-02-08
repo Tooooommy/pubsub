@@ -65,7 +65,7 @@ func newConsumer(cfg *Conf) (*consumer, error) {
 
 func (c *consumer) produce(s *subscriber) {
 	for _, p := range c.ps {
-		pc, _ := c.c.ConsumePartition(s.conf.Topic, p, sarama.OffsetNewest)
+		pc, _ := c.c.ConsumePartition(s.conf.Topic, p, s.conf.Offset)
 		for i := 0; i < s.conf.Processors; i++ {
 			s.producerRoutines.Run(func() {
 				for msg:= range pc.Messages() {
