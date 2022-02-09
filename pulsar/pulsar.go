@@ -133,4 +133,5 @@ func (s *subscriber) consume() {
 // Stop ...
 func (s *subscriber) Stop() {
 	s.consumer.Close()
+	_ = logx.Close()
 }
