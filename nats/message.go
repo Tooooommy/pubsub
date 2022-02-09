@@ -24,9 +24,9 @@ func (m *message) Value() []byte {
 }
 
 func (m *message) Ack(err error) {
-	if err != nil {
-		m.msg.Nak()
+	if err == nil {
+		_ = m.msg.Ack()
 	} else {
-		m.msg.Ack()
+		_ = m.msg.Nak()
 	}
 }

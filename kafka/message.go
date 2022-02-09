@@ -26,8 +26,8 @@ func (m *message) Value() []byte {
 	return m.value
 }
 
-func (m *message) Ack( err error) {
-	if m.sess != nil && err != nil  {
+func (m *message) Ack(err error) {
+	if err == nil {
 		m.sess.MarkMessage(m.msg, "")
 	}
 }

@@ -60,8 +60,8 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 	}, err
 }
 
-func (p *publisher) Publish(ctx context.Context, payload[]byte, keys ...string) error {
-	pm := &pulsar.ProducerMessage{Payload: payload,}
+func (p *publisher) Publish(ctx context.Context, payload []byte, keys ...string) error {
+	pm := &pulsar.ProducerMessage{Payload: payload}
 	if len(keys) > 0 {
 		pm.Key = keys[0]
 	}
@@ -73,7 +73,7 @@ func (p *publisher) Publish(ctx context.Context, payload[]byte, keys ...string) 
 	return err
 }
 
-func (s *subscriber) NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subscriber, error) {
+func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subscriber, error) {
 	conf := newConf()
 	for _, option := range options {
 		option(conf)
@@ -133,5 +133,4 @@ func (s *subscriber) consume() {
 // Stop ...
 func (s *subscriber) Stop() {
 	s.consumer.Close()
-	_ = logx.Close()
 }

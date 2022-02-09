@@ -3,6 +3,7 @@ package pulsar
 import (
 	"context"
 	"fmt"
+	"github.com/Tooooommy/pubsub"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -62,21 +63,28 @@ func TestSubscribe(t *testing.T) {
 	wg.Wait()
 }
 
-func TestPubSub(t *testing.T) {
-	_ , err := NewPublisher()
+func TestSub(t *testing.T) {
+	sub, err := NewSubscriber(func(m pubsub.Message) error {
+		fmt.Println(m.Topic(), m.Key(), string(m.Value()))
+		return nil
+	})
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	sub.Start()
+	defer sub.Stop()
 }
 
-func TestChannel(t *testing.T)  {
-	chs := make(chan int, 100)
-	for i:=0;i<100;i++ {
-
+func TestPub(t *testing.T) {
+	pub, err := NewPublisher()
+	if err != nil {
+		t.Error(err)
+		return
 	}
-	close(chs)
-	for num := range chs {
-		fmt.Println(num)
+	err = pub.Publish(context.Background(), []byte("hello"), "world")
+	if err != nil {
+		t.Error(err)
+		return
 	}
 }

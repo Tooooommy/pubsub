@@ -21,7 +21,7 @@ type (
 
 	subscriber struct {
 		conf             *Conf
-		consumer         *consumer
+		consumer         sarama.ConsumerGroup
 		handle           pubsub.MessageHandle
 		channel          chan pubsub.Message
 		producerRoutines *threading.RoutineGroup
@@ -63,7 +63,7 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 	}, err
 }
 
-func (p *publisher) Publish(ctx context.Context, payload []byte, keys...string) error {
+func (p *publisher) Publish(ctx context.Context, payload []byte, keys ...string) error {
 	km := &sarama.ProducerMessage{
 		Topic: p.conf.Topic,
 		Value: sarama.ByteEncoder(payload),
@@ -94,7 +94,11 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 		return nil, errors.New("at least 1 broker host is required")
 	}
 
-	consumer, err := newConsumer(conf)
+	if len(conf.Group) == 0 {
+		return nil, errors.New("group name is required")
+	}
+
+	consumer, err := sarama.NewConsumerGroup(conf.URL, conf.Group, conf.KafkaConfig())
 	return &subscriber{
 		conf:             conf,
 		consumer:         consumer,
@@ -116,11 +120,9 @@ func (s *subscriber) Start() {
 }
 
 func (s *subscriber) produce() {
-	c := s.consumer
-	if c.c != nil {
-		c.produce(s)
-	} else {
-		c.produceGroup(s)
+	for i := 0; i < s.conf.Processors; i++ {
+		topic := []string{s.conf.Topic}
+		_ = s.consumer.Consume(context.Background(), topic, WithConsumerGroupHandle(s))
 	}
 }
 
@@ -135,5 +137,5 @@ func (s *subscriber) consume() {
 }
 
 func (s *subscriber) Stop() {
-	s.consumer.Close()
+	_ = s.consumer.Close()
 }

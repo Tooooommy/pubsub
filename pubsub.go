@@ -27,7 +27,7 @@ type (
 		Topic() string
 		Key() string
 		Value() []byte
-		Ack(err error)
+		Ack(error)
 	}
 
 	// MessageHandle ...
@@ -54,10 +54,11 @@ func NewConf(name string, url []string) Conf {
 		Topic:         name + ".topic",
 		Group:         name + ".group",
 		MaxMsgChan:    1024,
-		ChunkSize:     1024,
+		ChunkSize:     0,
 		FlushInterval: 0,
 		Consumers:     8,
 		Processors:    8,
+		Metrics:       stat.NewMetrics(name),
 	}
 }
 

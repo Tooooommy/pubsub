@@ -4,10 +4,11 @@ import "github.com/apache/pulsar-client-go/pulsar"
 
 type (
 	message struct {
-		topic string
-		key   string
-		value []byte
-		msg   pulsar.Message
+		topic    string
+		key      string
+		value    []byte
+		msg      pulsar.Message
+		consumer pulsar.Consumer
 	}
 )
 
@@ -24,5 +25,10 @@ func (m *message) Value() []byte {
 }
 
 func (m *message) Ack(err error) {
+	if err == nil {
+		m.consumer.Ack(m.msg)
+	} else {
+		m.consumer.Nack(m.msg)
+	}
 	return
 }

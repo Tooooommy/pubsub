@@ -27,14 +27,12 @@ func (cfg *Conf) ClientOptions() pulsar.ClientOptions {
 		URL:               cfg.URL[0],
 		OperationTimeout:  operationTimeout,
 		ConnectionTimeout: connectionTimeout,
-		ListenerName:      cfg.Name,
 	}
 }
 
 func (cfg *Conf) ProducerOptions() pulsar.ProducerOptions {
 	return pulsar.ProducerOptions{
 		Topic: cfg.Topic,
-		Name:  cfg.Name,
 	}
 }
 

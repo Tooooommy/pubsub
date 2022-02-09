@@ -19,11 +19,14 @@ func newConf() *Conf {
 	}
 }
 
-func (cfg *Conf) KafkaConfig() *sarama.Config {
+func (conf *Conf) KafkaConfig() *sarama.Config {
 	kc := sarama.NewConfig()
+	kc.Version, _ = sarama.ParseKafkaVersion(conf.Version)
 	kc.Producer.RequiredAcks = sarama.WaitForAll
 	kc.Producer.Retry.Max = 10
+	kc.Consumer.Return.Errors = true
 	kc.Producer.Return.Successes = true
+	kc.Consumer.Offsets.Initial = conf.Offset
 	kc.Producer.Partitioner = sarama.NewHashPartitioner
 	return kc
 }
