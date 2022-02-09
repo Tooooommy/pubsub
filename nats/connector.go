@@ -26,7 +26,7 @@ func newConn(conf *Conf) (*connector, error) {
 func (c *connector) publish(m *nats.Msg) error {
 	if c.s != nil {
 		key := m.Header["key"][0]
-		_, err := c.s.PublishMsg(m, nats.MsgId(string(key)))
+		_, err := c.s.PublishMsg(m, nats.MsgId(key))
 		return err
 	}
 	return c.c.PublishMsg(m)

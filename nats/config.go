@@ -10,29 +10,26 @@ import (
 // Conf ...
 type Conf struct {
 	pubsub.Conf
-	stream bool
+	IsStream bool
 }
 
 func newConf() *Conf {
 	return &Conf{
-		Conf:   pubsub.NewConf("nats", []string{"nats://localhost:4222"}),
-		stream: false,
+		Conf:     pubsub.NewConf("nats", []string{nats.DefaultURL}),
+		IsStream: false,
 	}
 }
 
 // Connect ...
-func (cfg *Conf) Connect() (*nats.Conn, error) {
-	if len(cfg.URL) > 0 {
-		cfg.URL = append(cfg.URL, nats.DefaultURL)
-	}
-	url := strings.Join(cfg.URL, ",")
-	return nats.Connect(url, nats.Name(cfg.Name))
+func (conf *Conf) Connect() (*nats.Conn, error) {
+	url := strings.Join(conf.URL, ",")
+	return nats.Connect(url, nats.Name(conf.Name))
 }
 
 // Stream ...
-func (cfg *Conf) Stream(conn *nats.Conn) (nats.JetStreamContext, error) {
-	if cfg.stream {
-		return conn.JetStream(nats.Domain(cfg.Name))
+func (conf *Conf) Stream(conn *nats.Conn) (nats.JetStreamContext, error) {
+	if conf.IsStream {
+		return conn.JetStream(nats.Domain(conf.Name))
 	}
 	return nil, nil
 }

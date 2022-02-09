@@ -44,8 +44,9 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 	}
 	execute := func(tasks []interface{}) {
 		for i := range tasks {
-			if err := producer.publish(tasks[i].(*nats.Msg)); err != nil {
-				logx.Error(err)
+			err := producer.publish(tasks[i].(*nats.Msg))
+			if err != nil {
+				logx.Errorf("Error on executor execute:%q,  err: %q", err, tasks[i])
 			}
 		}
 	}
@@ -54,13 +55,6 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 		producer: producer,
 		executor: conf.ChunkExecutor(execute),
 	}, err
-}
-
-// WithEnableStream ...
-func WithEnableStream(stream bool) Option {
-	return func(cfg *Conf) {
-		cfg.stream = stream
-	}
 }
 
 func (p *publisher) Publish(ctx context.Context, payload []byte, keys ...string) error {
@@ -85,10 +79,6 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 	}
 
 	consumer, err := newConn(conf)
-	if err != nil {
-		return nil, err
-	}
-
 	return &subscriber{
 		conf:             conf,
 		consumer:         consumer,
@@ -112,7 +102,8 @@ func (s *subscriber) Start() {
 func (s *subscriber) produce() {
 	ch, err := s.consumer.subscribe(s.conf.Topic, s.conf.Group)
 	if err != nil {
-		logx.Error(err)
+		logx.Errorf("Error on consumer subscribe Topic: %+q, Group: %+q, Err: %q",
+			s.conf.Topic, s.conf.Group, err)
 		return
 	}
 	for i := 0; i < s.conf.Processors; i++ {
