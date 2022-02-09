@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"github.com/Shopify/sarama"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type (
@@ -29,5 +30,7 @@ func (m *message) Value() []byte {
 func (m *message) Ack(err error) {
 	if err == nil {
 		m.sess.MarkMessage(m.msg, "")
+	} else {
+		logx.Error("Error on message ack: %+v, Error: %+v", m, err)
 	}
 }

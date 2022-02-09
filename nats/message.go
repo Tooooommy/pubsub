@@ -1,6 +1,9 @@
 package nats
 
-import "github.com/nats-io/nats.go"
+import (
+	"github.com/nats-io/nats.go"
+	"github.com/zeromicro/go-zero/core/logx"
+)
 
 type (
 	message struct {
@@ -28,5 +31,6 @@ func (m *message) Ack(err error) {
 		_ = m.msg.Ack()
 	} else {
 		_ = m.msg.Nak()
+		logx.Error("Error on message ack: %+v, Error: %+v", m, err)
 	}
 }

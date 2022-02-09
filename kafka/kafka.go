@@ -48,12 +48,11 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 	}
 
 	execute := func(tasks []interface{}) {
-		chunk := make([]*sarama.ProducerMessage, len(tasks))
 		for i := range tasks {
-			chunk[i] = tasks[i].(*sarama.ProducerMessage)
-		}
-		if err := producer.SendMessages(chunk); err != nil {
-			logx.Error(err)
+			_, _, err := producer.SendMessage(tasks[i].(*sarama.ProducerMessage))
+			if err != nil {
+				logx.Errorf("Error on executor execute:%+v,  err: %+v", tasks[i], err)
+			}
 		}
 	}
 	return &publisher{
@@ -120,9 +119,11 @@ func (s *subscriber) Start() {
 }
 
 func (s *subscriber) produce() {
-	for i := 0; i < s.conf.Processors; i++ {
-		topic := []string{s.conf.Topic}
-		_ = s.consumer.Consume(context.Background(), topic, WithConsumerGroupHandle(s))
+	err := s.consumer.Consume(context.Background(), []string{s.conf.Topic},
+		WithConsumerGroupHandle(s))
+	if err != nil {
+		logx.Errorf("Error on consume Topic: %+v, Error: %+v", s.conf.Topic, err)
+		return
 	}
 }
 
@@ -138,4 +139,5 @@ func (s *subscriber) consume() {
 
 func (s *subscriber) Stop() {
 	_ = s.consumer.Close()
+	_ = logx.Close()
 }

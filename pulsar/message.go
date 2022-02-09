@@ -1,6 +1,9 @@
 package pulsar
 
-import "github.com/apache/pulsar-client-go/pulsar"
+import (
+	"github.com/apache/pulsar-client-go/pulsar"
+	"github.com/zeromicro/go-zero/core/logx"
+)
 
 type (
 	message struct {
@@ -29,6 +32,7 @@ func (m *message) Ack(err error) {
 		m.consumer.Ack(m.msg)
 	} else {
 		m.consumer.Nack(m.msg)
+		logx.Error("Error on message ack: %+v, Error: %+v", m, err)
 	}
 	return
 }

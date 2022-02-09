@@ -46,7 +46,7 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 		for i := range tasks {
 			err := producer.publish(tasks[i].(*nats.Msg))
 			if err != nil {
-				logx.Errorf("Error on executor execute:%q,  err: %q", err, tasks[i])
+				logx.Errorf("Error on executor execute:%+v,  err: %+v", tasks[i], err)
 			}
 		}
 	}
@@ -102,7 +102,7 @@ func (s *subscriber) Start() {
 func (s *subscriber) produce() {
 	ch, err := s.consumer.subscribe(s.conf.Topic, s.conf.Group)
 	if err != nil {
-		logx.Errorf("Error on consumer subscribe Topic: %+q, Group: %+q, Err: %q",
+		logx.Errorf("Error on subscribe Topic: %+v, Group: %+v, Err: %+v",
 			s.conf.Topic, s.conf.Group, err)
 		return
 	}
