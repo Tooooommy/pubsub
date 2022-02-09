@@ -16,7 +16,7 @@ type Conf struct {
 func newConf() *Conf {
 	return &Conf{
 		Conf:     pubsub.NewConf("nats", []string{nats.DefaultURL}),
-		IsStream: false,
+		IsStream: true,
 	}
 }
 
