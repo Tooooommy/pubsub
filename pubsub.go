@@ -27,11 +27,12 @@ type (
 		Topic() string
 		Key() string
 		Value() []byte
-		Ack(error)
+		Ack() error
+		Nack() error
 	}
 
 	// MessageHandle ...
-	MessageHandle func(Message) error
+	MessageHandle func(Message)
 
 	Conf struct {
 		Name          string
@@ -65,9 +66,8 @@ func NewConf(name string, url []string) Conf {
 // ConsumeOne ...
 func ConsumeOne(metrics *stat.Metrics, handle MessageHandle, msg Message) {
 	startTime := timex.Now()
-	err := handle(msg)
+	handle(msg)
 	metrics.Add(stat.Task{Duration: timex.Since(startTime)})
-	msg.Ack(err)
 }
 
 // ChunkExecutor ...
