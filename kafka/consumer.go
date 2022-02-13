@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"github.com/Shopify/sarama"
+	"github.com/Tooooommy/pubsub"
 )
 
 func WithConsumerGroupHandle(s *subscriber) sarama.ConsumerGroupHandler {
@@ -21,15 +22,16 @@ func (inner *innerConsumerGroupHandler) Cleanup(s sarama.ConsumerGroupSession) e
 }
 
 func (inner *innerConsumerGroupHandler) ConsumeClaim(s sarama.ConsumerGroupSession, c sarama.ConsumerGroupClaim) error {
-	for i := 0; i < inner.s.conf.Processors; i++ {
-		inner.s.producerRoutines.Run(func() {
-			for msg := range c.Messages() {
-				inner.s.channel <- &message{
-					key:   string(msg.Key),
-					value: msg.Value,
-					msg:   msg,
+	for i := 0; i < inner.s.conf.Routines; i++ {
+		inner.s.routines.Run(func() {
+			for ch := range c.Messages() {
+				msg := &message{
+					key:   string(ch.Key),
+					value: ch.Value,
+					msg:   ch,
 					sess:  s,
 				}
+				pubsub.ConsumeOne(inner.s.metrics, inner.s.handle, msg)
 			}
 		})
 	}

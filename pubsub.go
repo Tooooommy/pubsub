@@ -42,8 +42,7 @@ type (
 		MaxMsgChan    int
 		ChunkSize     int
 		FlushInterval int
-		Consumers     int
-		Processors    int
+		Routines      int
 		Metrics       *stat.Metrics
 	}
 )
@@ -57,8 +56,7 @@ func NewConf(name string, url []string) Conf {
 		MaxMsgChan:    1024,
 		ChunkSize:     0,
 		FlushInterval: 0,
-		Consumers:     8,
-		Processors:    8,
+		Routines:      8,
 		Metrics:       stat.NewMetrics(name),
 	}
 }

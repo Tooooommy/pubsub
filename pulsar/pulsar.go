@@ -19,13 +19,11 @@ type (
 	}
 
 	subscriber struct {
-		conf             *Conf
-		consumer         pulsar.Consumer
-		handle           pubsub.MessageHandle
-		channel          chan pubsub.Message
-		producerRoutines *threading.RoutineGroup
-		consumerRoutines *threading.RoutineGroup
-		metrics          *stat.Metrics
+		conf     *Conf
+		consumer pulsar.Consumer
+		handle   pubsub.MessageHandle
+		routines *threading.RoutineGroup
+		metrics  *stat.Metrics
 	}
 	Option func(*Conf)
 )
@@ -45,6 +43,7 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	execute := func(tasks []interface{}) {
 		for _, task := range tasks {
 			_, err := producer.Send(context.Background(), task.(*pulsar.ProducerMessage))
@@ -53,11 +52,12 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 			}
 		}
 	}
+
 	return &publisher{
 		conf:     conf,
 		producer: producer,
 		executor: conf.ChunkExecutor(execute),
-	}, err
+	}, nil
 }
 
 func (p *publisher) Publish(ctx context.Context, payload []byte, keys ...string) error {
@@ -85,46 +85,35 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 	}
 
 	customer, err := client.Subscribe(conf.ConsumerOptions())
+	if err != nil {
+		return nil, err
+	}
+
 	return &subscriber{
-		conf:             conf,
-		consumer:         customer,
-		handle:           handle,
-		channel:          make(chan pubsub.Message, conf.MaxMsgChan),
-		producerRoutines: threading.NewRoutineGroup(),
-		consumerRoutines: threading.NewRoutineGroup(),
-		metrics:          conf.Metrics,
+		conf:     conf,
+		consumer: customer,
+		handle:   handle,
+		routines: threading.NewRoutineGroup(),
+		metrics:  conf.Metrics,
 	}, err
 }
 
 // Start ...
 func (s *subscriber) Start() {
 	s.consume()
-	s.produce()
-	s.producerRoutines.Wait()
-	close(s.channel)
-	s.consumerRoutines.Wait()
+	s.routines.Wait()
 	s.consumer.Close()
 }
 
-func (s *subscriber) produce() {
-	for i := 0; i < s.conf.Processors; i++ {
-		s.producerRoutines.Run(func() {
+func (s *subscriber) consume() {
+	for i := 0; i < s.conf.Routines; i++ {
+		s.routines.Run(func() {
 			for ch := range s.consumer.Chan() {
-				s.channel <- &message{
+				pubsub.ConsumeOne(s.metrics, s.handle, &message{
 					key:   ch.Message.Key(),
 					value: ch.Message.Payload(),
 					msg:   ch.Message,
-				}
-			}
-		})
-	}
-}
-
-func (s *subscriber) consume() {
-	for i := 0; i < s.conf.Consumers; i++ {
-		s.consumerRoutines.Run(func() {
-			for msg := range s.channel {
-				pubsub.ConsumeOne(s.metrics, s.handle, msg)
+				})
 			}
 		})
 	}

@@ -6,8 +6,9 @@ import (
 
 type (
 	connector struct {
-		c *nats.Conn
-		s nats.JetStreamContext
+		c  *nats.Conn
+		s  nats.JetStreamContext
+		ch chan *nats.Msg
 	}
 )
 
@@ -34,15 +35,20 @@ func (c *connector) publish(m *nats.Msg) error {
 
 func (c *connector) subscribe(topic, group string) (chan *nats.Msg, error) {
 	var err error
-	ch := make(chan *nats.Msg)
+	c.ch = make(chan *nats.Msg)
 	if c.s != nil {
-		_, err = c.s.ChanQueueSubscribe(topic, group, ch)
+		_, err = c.s.ChanQueueSubscribe(topic, group, c.ch)
 	} else {
-		_, err = c.c.ChanQueueSubscribe(topic, group, ch)
+		_, err = c.c.ChanQueueSubscribe(topic, group, c.ch)
 	}
-	return ch, err
+	return c.ch, err
+}
+
+func (c *connector) Chan() chan *nats.Msg {
+	return c.ch
 }
 
 func (c *connector) Clone() {
+	close(c.ch)
 	c.c.Close()
 }

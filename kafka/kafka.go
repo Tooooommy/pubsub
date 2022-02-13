@@ -20,13 +20,11 @@ type (
 	}
 
 	subscriber struct {
-		conf             *Conf
-		consumer         sarama.ConsumerGroup
-		handle           pubsub.MessageHandle
-		channel          chan pubsub.Message
-		producerRoutines *threading.RoutineGroup
-		consumerRoutines *threading.RoutineGroup
-		metrics          *stat.Metrics
+		conf     *Conf
+		consumer sarama.ConsumerGroup
+		handle   pubsub.MessageHandle
+		routines *threading.RoutineGroup
+		metrics  *stat.Metrics
 	}
 
 	Option func(*Conf)
@@ -98,42 +96,30 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 	}
 
 	consumer, err := sarama.NewConsumerGroup(conf.URL, conf.Group, conf.KafkaConfig())
+	if err != nil {
+		return nil, err
+	}
 	return &subscriber{
-		conf:             conf,
-		consumer:         consumer,
-		handle:           handle,
-		channel:          make(chan pubsub.Message, conf.MaxMsgChan),
-		producerRoutines: threading.NewRoutineGroup(),
-		consumerRoutines: threading.NewRoutineGroup(),
-		metrics:          conf.Metrics,
+		conf:     conf,
+		consumer: consumer,
+		handle:   handle,
+		routines: threading.NewRoutineGroup(),
+		metrics:  conf.Metrics,
 	}, err
 }
 
 func (s *subscriber) Start() {
 	s.consume()
-	s.produce()
-	s.producerRoutines.Wait()
-	close(s.channel)
-	s.consumerRoutines.Wait()
+	s.routines.Wait()
 	s.consumer.Close()
 }
 
-func (s *subscriber) produce() {
+func (s *subscriber) consume() {
 	err := s.consumer.Consume(context.Background(), []string{s.conf.Topic},
 		WithConsumerGroupHandle(s))
 	if err != nil {
 		logx.Errorf("Error on consume Topic: %+v, Error: %+v", s.conf.Topic, err)
 		return
-	}
-}
-
-func (s *subscriber) consume() {
-	for i := 0; i < s.conf.Consumers; i++ {
-		s.consumerRoutines.Run(func() {
-			for msg := range s.channel {
-				pubsub.ConsumeOne(s.metrics, s.handle, msg)
-			}
-		})
 	}
 }
 

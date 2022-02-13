@@ -19,13 +19,11 @@ type (
 	}
 
 	subscriber struct {
-		conf             *Conf
-		consumer         *connector
-		channel          chan pubsub.Message
-		handle           pubsub.MessageHandle
-		producerRoutines *threading.RoutineGroup
-		consumerRoutines *threading.RoutineGroup
-		metrics          *stat.Metrics
+		conf     *Conf
+		consumer *connector
+		handle   pubsub.MessageHandle
+		routines *threading.RoutineGroup
+		metrics  *stat.Metrics
 	}
 
 	Option func(*Conf)
@@ -79,55 +77,43 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 	}
 
 	consumer, err := newConn(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = consumer.subscribe(conf.Topic, conf.Group)
+	if err != nil {
+		return nil, err
+	}
+
 	return &subscriber{
-		conf:             conf,
-		consumer:         consumer,
-		channel:          make(chan pubsub.Message, conf.MaxMsgChan),
-		handle:           handle,
-		producerRoutines: threading.NewRoutineGroup(),
-		consumerRoutines: threading.NewRoutineGroup(),
-		metrics:          conf.Metrics,
-	}, err
+		conf:     conf,
+		consumer: consumer,
+		handle:   handle,
+		routines: threading.NewRoutineGroup(),
+		metrics:  conf.Metrics,
+	}, nil
 }
 
 func (s *subscriber) Start() {
 	s.consume()
-	s.produce()
-	s.producerRoutines.Wait()
-	close(s.channel)
-	s.consumerRoutines.Wait()
+	s.routines.Wait()
 	s.consumer.Clone()
 }
 
-func (s *subscriber) produce() {
-	ch, err := s.consumer.subscribe(s.conf.Topic, s.conf.Group)
-	if err != nil {
-		logx.Errorf("Error on subscribe Topic: %+v, Group: %+v, Err: %+v",
-			s.conf.Topic, s.conf.Group, err)
-		return
-	}
-	for i := 0; i < s.conf.Processors; i++ {
-		s.producerRoutines.Run(func() {
-			for msg := range ch {
-				key := ""
-				if header, ok := msg.Header["key"]; ok && len(header) > 0 {
-					key = header[0]
-				}
-				s.channel <- &message{
-					topic: msg.Subject,
-					value: msg.Data,
-					key:   key,
-					msg:   msg,
-				}
-			}
-		})
-	}
-}
-
 func (s *subscriber) consume() {
-	for i := 0; i < s.conf.Consumers; i++ {
-		s.consumerRoutines.Run(func() {
-			for msg := range s.channel {
+	for i := 0; i < s.conf.Routines; i++ {
+		s.routines.Run(func() {
+			for ch := range s.consumer.Chan() {
+				msg := &message{
+					topic: ch.Subject,
+					value: ch.Data,
+					msg:   ch,
+				}
+				header, ok := ch.Header["key"]
+				if ok && len(header) > 0 {
+					msg.key = header[0]
+				}
 				pubsub.ConsumeOne(s.metrics, s.handle, msg)
 			}
 		})

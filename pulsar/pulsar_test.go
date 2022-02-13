@@ -64,9 +64,8 @@ func TestSubscribe(t *testing.T) {
 }
 
 func TestSub(t *testing.T) {
-	sub, err := NewSubscriber(func(m pubsub.Message) error {
+	sub, err := NewSubscriber(func(m pubsub.Message) {
 		fmt.Println(m.Topic(), m.Key(), string(m.Value()))
-		return nil
 	})
 	if err != nil {
 		t.Error(err)
