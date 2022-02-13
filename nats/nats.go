@@ -36,10 +36,21 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 		option(conf)
 	}
 
+	err := conf.ValidateTopic()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conf.ValidateURL()
+	if err != nil {
+		return nil, err
+	}
+
 	producer, err := newConn(conf)
 	if err != nil {
 		return nil, err
 	}
+
 	execute := func(tasks []interface{}) {
 		for i := range tasks {
 			err := producer.publish(tasks[i].(*nats.Msg))
@@ -48,6 +59,7 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 			}
 		}
 	}
+
 	return &publisher{
 		conf:     conf,
 		producer: producer,
@@ -76,12 +88,22 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 		option(conf)
 	}
 
+	err := conf.ValidateTopic()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conf.ValidateURL()
+	if err != nil {
+		return nil, err
+	}
+
 	consumer, err := newConn(conf)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = consumer.subscribe(conf.Topic, conf.Group)
+	_, err = consumer.subscribe(conf.Topic)
 	if err != nil {
 		return nil, err
 	}

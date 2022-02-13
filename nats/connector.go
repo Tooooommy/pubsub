@@ -26,20 +26,19 @@ func newConn(conf *Conf) (*connector, error) {
 
 func (c *connector) publish(m *nats.Msg) error {
 	if c.s != nil {
-		key := m.Header["key"][0]
-		_, err := c.s.PublishMsg(m, nats.MsgId(key))
+		_, err := c.s.PublishMsg(m)
 		return err
 	}
 	return c.c.PublishMsg(m)
 }
 
-func (c *connector) subscribe(topic, group string) (chan *nats.Msg, error) {
+func (c *connector) subscribe(topic string) (chan *nats.Msg, error) {
 	var err error
 	c.ch = make(chan *nats.Msg)
 	if c.s != nil {
-		_, err = c.s.ChanQueueSubscribe(topic, group, c.ch)
+		_, err = c.s.ChanSubscribe(topic, c.ch)
 	} else {
-		_, err = c.c.ChanQueueSubscribe(topic, group, c.ch)
+		_, err = c.c.ChanSubscribe(topic, c.ch)
 	}
 	return c.ch, err
 }

@@ -2,8 +2,6 @@ package kafka
 
 import (
 	"context"
-	"errors"
-
 	"github.com/Shopify/sarama"
 	"github.com/Tooooommy/pubsub"
 	"github.com/zeromicro/go-zero/core/executors"
@@ -36,8 +34,14 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 		option(conf)
 	}
 
-	if len(conf.Topic) == 0 {
-		return nil, errors.New("topic name is required")
+	err := conf.ValidateURL()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conf.ValidateTopic()
+	if err != nil {
+		return nil, err
 	}
 
 	producer, err := sarama.NewSyncProducer(conf.URL, conf.KafkaConfig())
@@ -83,16 +87,19 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 		option(conf)
 	}
 
-	if len(conf.Topic) == 0 {
-		return nil, errors.New("topic name is required")
+	err := conf.ValidateTopic()
+	if err != nil {
+		return nil, err
 	}
 
-	if len(conf.URL) == 0 {
-		return nil, errors.New("at least 1 broker host is required")
+	err = conf.ValidateURL()
+	if err != nil {
+		return nil, err
 	}
 
-	if len(conf.Group) == 0 {
-		return nil, errors.New("group name is required")
+	err = conf.ValidateGroup()
+	if err != nil {
+		return nil, err
 	}
 
 	consumer, err := sarama.NewConsumerGroup(conf.URL, conf.Group, conf.KafkaConfig())

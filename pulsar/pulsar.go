@@ -34,6 +34,17 @@ func NewPublisher(options ...Option) (pubsub.Publisher, error) {
 	for _, option := range options {
 		option(conf)
 	}
+
+	err := conf.ValidateTopic()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conf.ValidateURL()
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := pulsar.NewClient(conf.ClientOptions())
 	if err != nil {
 		return nil, err
@@ -77,6 +88,21 @@ func NewSubscriber(handle pubsub.MessageHandle, options ...Option) (pubsub.Subsc
 	conf := newConf()
 	for _, option := range options {
 		option(conf)
+	}
+
+	err := conf.ValidateTopic()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conf.ValidateURL()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conf.ValidateGroup()
+	if err != nil {
+		return nil, err
 	}
 
 	client, err := pulsar.NewClient(conf.ClientOptions())

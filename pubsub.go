@@ -2,11 +2,18 @@ package pubsub
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/executors"
 	"github.com/zeromicro/go-zero/core/stat"
 	"github.com/zeromicro/go-zero/core/timex"
+)
+
+var (
+	ErrTopicEmpty = errors.New("topic name is required")
+	ErrURLEmpty   = errors.New("at least 1 broker host is required")
+	ErrGroupEmpty = errors.New("group name is required")
 )
 
 type (
@@ -61,6 +68,31 @@ func NewConf(name string, url []string) Conf {
 	}
 }
 
+func (conf *Conf) ValidateTopic() error {
+	if len(conf.Topic) == 0 {
+		return ErrTopicEmpty
+	}
+	return nil
+}
+
+func (conf *Conf) ValidateURL() error {
+
+	if len(conf.URL) == 0 {
+		return ErrURLEmpty
+	}
+
+	return nil
+}
+
+func (conf *Conf) ValidateGroup() error {
+
+	if len(conf.Group) == 0 {
+		return ErrGroupEmpty
+	}
+
+	return nil
+}
+
 // ConsumeOne ...
 func ConsumeOne(metrics *stat.Metrics, handle MessageHandle, msg Message) {
 	startTime := timex.Now()
@@ -69,16 +101,16 @@ func ConsumeOne(metrics *stat.Metrics, handle MessageHandle, msg Message) {
 }
 
 // ChunkExecutor ...
-func (cfg *Conf) ChunkExecutor(execute executors.Execute) *executors.ChunkExecutor {
-	if cfg.ChunkSize == 0 && cfg.FlushInterval == 0 {
+func (conf *Conf) ChunkExecutor(execute executors.Execute) *executors.ChunkExecutor {
+	if conf.ChunkSize == 0 && conf.FlushInterval == 0 {
 		return nil
 	}
 	var opts []executors.ChunkOption
-	if cfg.ChunkSize > 0 {
-		opts = append(opts, executors.WithChunkBytes(cfg.ChunkSize))
+	if conf.ChunkSize > 0 {
+		opts = append(opts, executors.WithChunkBytes(conf.ChunkSize))
 	}
-	if cfg.FlushInterval > 0 {
-		opts = append(opts, executors.WithFlushInterval(time.Duration(cfg.FlushInterval)))
+	if conf.FlushInterval > 0 {
+		opts = append(opts, executors.WithFlushInterval(time.Duration(conf.FlushInterval)))
 	}
 	return executors.NewChunkExecutor(execute, opts...)
 }
